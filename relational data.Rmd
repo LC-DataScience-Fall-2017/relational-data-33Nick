@@ -1,0 +1,146 @@
+---
+title: "Chapter 10"
+author: "Nick Smith"
+date: "November 24, 2017"
+output: html_document
+---
+
+
+```{r libraries, echo=FALSE}
+library("tidyverse")
+library("nycflights13")
+```
+
+##Exercises
+
+1. Use the flights and airports table. You would have to merge them so you could get the locations of the destination and origin airports
+
+2. The two are related by the origin in the weather table is matched with the variable faa in the airport table
+
+3. All variables would be matched the same between weather and flights ... but origin in weather would be matched with dest in flight
+
+4. You could just add in another table with the dates that people flew less often on. The primary key or unique identifier would be the date itself and it would match up with year, month and day in flights table
+
+
+## Keys exercises
+
+1. 
+```{r}
+flights %>% 
+  arrange(year, month, day, sched_dep_time, carrier, flight) %>%
+  mutate(id_num = row_number()) %>%
+  glimpse()
+```
+
+2. a) Lahman::Batting : the playerID, yearID, stint
+
+b) babynames::babynames : year, sex, name
+
+c) nasaweather::atoms : lat, long, year, month
+
+d) fueleconomy::vehicles : simply the id column
+
+e) ggplot2::diamonds  : doesn't have a primary key
+
+3. 
+
+
+## 3rd group of exercises
+
+1. 
+```{r}
+airports %>%
+  semi_join(flights, c("faa" = "dest")) %>%
+  ggplot(aes(lon, lat)) +
+    borders("state") +
+    geom_point() +
+    coord_quickmap()
+
+avg_dest_delays <-
+  flights %>%
+  group_by(dest) %>%
+  # arrival delay NA's are cancelled flights
+  summarise(delay = mean(arr_delay, na.rm = TRUE)) %>%
+  inner_join(airports, by = c(dest = "faa"))
+
+avg_dest_delays %>%
+  ggplot(aes(lon, lat, color = delay)) +
+    borders("state") +
+    geom_point() +
+    coord_quickmap()
+```
+
+2. 
+```{r}
+flights %>%
+  left_join(airports, by = c(dest = "faa")) %>%
+  left_join(airports, by = c(origin = "faa")) %>%
+  head()
+```
+
+
+3.
+No there wasn't much that actually correlates between the two. The time the plane was delayed seemed to possibly go up but not really all that much
+
+4.
+Precipitation seemed to be associated with a delay. But doesn't have as strong as a correlation as I expected
+
+5.
+```{r}
+library(viridis)
+flights %>%
+  filter(year == 2013, month == 6, day == 13) %>%
+  group_by(dest) %>%
+  summarise(delay = mean(arr_delay, na.rm = TRUE)) %>%
+  inner_join(airports, by = c("dest" = "faa")) %>%
+  ggplot(aes(y = lat, x = lon, size = delay, colour = delay)) +
+  borders("state") +
+  geom_point() +
+  coord_quickmap() + 
+  scale_color_viridis()
+```
+
+
+## 4th Group of exercises
+
+1.
+```{r}
+flights %>%
+  anti_join(planes, by = "tailnum") %>%
+  count(carrier, sort = TRUE)
+```
+
+American airlines and Envoy Airlines both don't report any of their tail numbers which can explain why theres such a large number of flights without a tail num
+
+2.
+```{r}
+planes_gt100 <- 
+  filter(flights) %>%
+  group_by(tailnum) %>%
+  count() %>%
+  filter(n > 100)
+
+flights %>%
+  semi_join(planes_gt100, by = "tailnum")
+```
+
+
+3.
+```{r}
+glimpse(fueleconomy::vehicles)
+glimpse(fueleconomy::common)
+fueleconomy::vehicles %>%
+  semi_join(fueleconomy::common, by = c("make", "model"))
+```
+
+
+4.
+anti_join(flights, airports, by = c("dest" = "faa")) are flights that go to an airport that is not in FAA list of destinations, likely foreign airports.
+
+anti_join(airports, flights, by = c("faa" = "dest")) are US airports that don’t have a flight in the data, meaning that there were no flights to that aiport from New York in 2013.
+
+5.
+
+
+6.
+
